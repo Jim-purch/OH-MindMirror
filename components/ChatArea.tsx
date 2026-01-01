@@ -1,10 +1,13 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Message, MessageRole, CardCombination, PlacedToy } from '../types';
+import { SCENES } from './sandplay/sceneData';
+import { TOY_DATA } from './sandplay/toyData';
+import ToyIcon from './sandplay/ToyIcon';
 
 interface ChatAreaProps {
   messages: Message[];
   cards?: CardCombination;
-  sandplayData?: { placedToys: PlacedToy[] };
+  sandplayData?: { sceneId?: string; placedToys: PlacedToy[] };
   onSendMessage: (text: string) => void;
   isLoading: boolean;
 }
@@ -45,6 +48,9 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, cards, sandplayData, onSe
 
   const hasCards = !!cards;
   const hasSandplay = !!sandplayData;
+  const currentScene = sandplayData?.sceneId
+    ? (SCENES.find(s => s.id === sandplayData.sceneId) || SCENES[0])
+    : SCENES[0];
 
   return (
     <div className="flex flex-col h-full bg-background relative">
@@ -81,13 +87,14 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, cards, sandplayData, onSe
             </>
           )}
 
-          {hasSandplay && (
+          {hasSandplay && sandplayData && (
             <>
-              <div className="w-10 h-10 rounded bg-[#e6cfa1] flex items-center justify-center border border-wood-800 shadow-sm">
-                 <span className="text-xl">🏝️</span>
+              <div className="w-10 h-10 rounded flex items-center justify-center border border-gray-200 shadow-sm overflow-hidden"
+                   style={currentScene.backgroundStyle}>
+                 <span className="text-xl drop-shadow-md">🏝️</span>
               </div>
               <div>
-                <h3 className="font-bold text-gray-700 text-sm">沙盘探索</h3>
+                <h3 className="font-bold text-gray-700 text-sm">{currentScene.name}探索</h3>
                 <p className="text-xs text-gray-500">共 {sandplayData.placedToys.length} 个物件</p>
               </div>
             </>
@@ -141,19 +148,31 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, cards, sandplayData, onSe
 
           {hasSandplay && sandplayData && (
              <div className="flex flex-col items-center">
-                <div className="relative w-full max-w-lg aspect-video bg-[#e6cfa1] rounded-lg shadow-inner border-4 border-wood-800 overflow-hidden mb-2">
+                <div
+                    className="relative w-full max-w-lg aspect-video rounded-lg shadow-inner border-4 border-amber-900 overflow-hidden mb-2"
+                    style={currentScene.backgroundStyle}
+                >
                     {/* Simplified read-only view of sandplay */}
-                    {sandplayData.placedToys.map(toy => (
-                         <div
-                            key={toy.id}
-                            className="absolute transform -translate-x-1/2 -translate-y-1/2 text-2xl select-none"
-                            style={{ left: `${toy.x}%`, top: `${toy.y}%` }}
-                          >
-                            {toy.emoji}
-                          </div>
-                    ))}
+                    {sandplayData.placedToys.map(toy => {
+                         const toyDef = TOY_DATA.find(t => t.id === toy.toyId);
+                         if (!toyDef) return null;
+
+                         return (
+                            <div
+                                key={toy.id}
+                                className="absolute transform -translate-x-1/2 -translate-y-1/2"
+                                style={{
+                                    left: `${toy.x}%`,
+                                    top: `${toy.y}%`,
+                                    transform: `translate(-50%, -50%) rotate(${toy.rotation || 0}deg) scale(${toy.scale || 1})`
+                                }}
+                            >
+                                <ToyIcon toy={toyDef} size={24} />
+                            </div>
+                         );
+                    })}
                 </div>
-                <p className="text-xs text-gray-500">沙盘快照</p>
+                <p className="text-xs text-gray-500">{currentScene.name}快照</p>
              </div>
           )}
           <p className="text-center text-xs text-gray-400 mt-3">点击上方标题栏可以收起预览</p>

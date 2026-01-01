@@ -28,16 +28,34 @@ export interface Message {
   timestamp: number;
 }
 
+export interface ToyDefinition {
+  id: string;
+  name: string;
+  category: string;
+  svg: string; // SVG path content or full SVG string
+  defaultColor?: string;
+}
+
 export interface PlacedToy {
   id: string; // Unique ID for this placed instance
   toyId: string; // ID of the toy type
-  emoji: string; // The emoji representing the toy
   name: string;
   x: number; // Percentage 0-100
   y: number; // Percentage 0-100
+  rotation: number; // Degrees 0-360
+  scale: number; // Scale factor, default 1
+  emoji?: string; // Kept for backward compatibility or as fallback
+}
+
+export interface SandplayScene {
+  id: string;
+  name: string;
+  backgroundStyle: React.CSSProperties;
+  description: string;
 }
 
 export interface SandplayData {
+  sceneId?: string;
   placedToys: PlacedToy[];
   description?: string;
 }

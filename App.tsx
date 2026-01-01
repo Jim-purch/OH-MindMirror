@@ -7,6 +7,7 @@ import CardDrawer from './components/CardDrawer';
 import ChatArea from './components/ChatArea';
 import SettingsModal from './components/SettingsModal';
 import SandplayView from './components/sandplay/SandplayView';
+import { SCENES } from './components/sandplay/sceneData';
 import { getGeminiChat, sendMessage, createInitialContext } from './services/geminiService';
 
 const App: React.FC = () => {
@@ -128,15 +129,16 @@ const App: React.FC = () => {
     }
   };
 
-  const handleSandplayFinish = async (placedToys: PlacedToy[], description: string) => {
+  const handleSandplayFinish = async (placedToys: PlacedToy[], description: string, sceneId: string) => {
     const newSessionId = uuidv4();
+    const sceneName = SCENES.find(s => s.id === sceneId)?.name || '沙盘';
 
     // Construct initial message prompt
-    let initialText = `你好，我看到了你完成的沙盘。🌿\n\n`;
+    let initialText = `你好，我看到了你完成的沙盘作品。🌿\n\n`;
     if (description) {
         initialText += `你给它的描述是：“${description}”\n\n`;
     }
-    initialText += `在这个安全的空间里，请看着你的作品。不需要评价好坏，不需要寻找意义。\n\n当你准备好时，告诉我：**在摆放这些物件的过程中，你有什么特别的感受吗？或者哪个物件最吸引你的注意？**`;
+    initialText += `在这个安全的${sceneName}场景里，请看着你的作品。不需要评价好坏，不需要寻找意义。\n\n当你准备好时，告诉我：**在摆放这些物件的过程中，你有什么特别的感受吗？或者哪个物件最吸引你的注意？**`;
 
     const initialMessage: Message = {
       id: uuidv4(),
@@ -151,6 +153,7 @@ const App: React.FC = () => {
         createdAt: Date.now(),
         lastUpdated: Date.now(),
         sandplayData: {
+            sceneId,
             placedToys,
             description
         },
@@ -167,10 +170,11 @@ const App: React.FC = () => {
       chatInstanceRef.current = getGeminiChat([], apiSettings);
 
       // Create hidden context for Sandplay
-      const toysDescription = placedToys.map(t => `- ${t.name} (${t.emoji}) at position (${Math.round(t.x)}%, ${Math.round(t.y)}%)`).join('\n');
+      const toysDescription = placedToys.map(t => `- ${t.name} (id:${t.toyId}) at pos(${Math.round(t.x)}%, ${Math.round(t.y)}%) rot(${t.rotation || 0})`).join('\n');
       const hiddenContext = `
 [系统事件] 用户完成了一个沙盘作品。
 
+场景：${sceneName}
 用户描述：${description || '无'}
 
 摆放的物件：

@@ -1,112 +1,81 @@
 import React from 'react';
-
-export interface ToyCategory {
-  name: string;
-  toys: { id: string; emoji: string; name: string }[];
-}
-
-const TOY_CATEGORIES: ToyCategory[] = [
-  {
-    name: '自然',
-    toys: [
-      { id: 'tree', emoji: '🌲', name: '树' },
-      { id: 'flower', emoji: '🌻', name: '花' },
-      { id: 'mountain', emoji: '⛰️', name: '山' },
-      { id: 'rock', emoji: '🪨', name: '石头' },
-      { id: 'water', emoji: '💧', name: '水' },
-      { id: 'sun', emoji: '☀️', name: '太阳' },
-      { id: 'moon', emoji: '🌙', name: '月亮' },
-      { id: 'star', emoji: '⭐', name: '星星' },
-    ]
-  },
-  {
-    name: '人物',
-    toys: [
-      { id: 'person', emoji: '👤', name: '人' },
-      { id: 'baby', emoji: '👶', name: '婴儿' },
-      { id: 'man', emoji: '👨', name: '男人' },
-      { id: 'woman', emoji: '👩', name: '女人' },
-      { id: 'old_man', emoji: '👴', name: '老人' },
-      { id: 'old_woman', emoji: '👵', name: '老妇' },
-      { id: 'police', emoji: '👮', name: '警察' },
-      { id: 'doctor', emoji: '🧑‍⚕️', name: '医生' },
-    ]
-  },
-  {
-    name: '动物',
-    toys: [
-      { id: 'dog', emoji: '🐶', name: '狗' },
-      { id: 'cat', emoji: '🐱', name: '猫' },
-      { id: 'lion', emoji: '🦁', name: '狮子' },
-      { id: 'tiger', emoji: '🐯', name: '老虎' },
-      { id: 'bear', emoji: '🐻', name: '熊' },
-      { id: 'rabbit', emoji: '🐰', name: '兔子' },
-      { id: 'snake', emoji: '🐍', name: '蛇' },
-      { id: 'bird', emoji: '🐦', name: '鸟' },
-      { id: 'fish', emoji: '🐟', name: '鱼' },
-      { id: 'butterfly', emoji: '🦋', name: '蝴蝶' },
-    ]
-  },
-  {
-    name: '建筑/物品',
-    toys: [
-      { id: 'house', emoji: '🏠', name: '房子' },
-      { id: 'castle', emoji: '🏰', name: '城堡' },
-      { id: 'tent', emoji: '⛺', name: '帐篷' },
-      { id: 'bridge', emoji: '🌉', name: '桥' },
-      { id: 'car', emoji: '🚗', name: '车' },
-      { id: 'boat', emoji: '⛵', name: '船' },
-      { id: 'plane', emoji: '✈️', name: '飞机' },
-      { id: 'book', emoji: '📖', name: '书' },
-      { id: 'sword', emoji: '🗡️', name: '剑' },
-      { id: 'shield', emoji: '🛡️', name: '盾' },
-    ]
-  }
-];
+import { TOY_DATA } from './toyData';
+import ToyIcon from './ToyIcon';
+import { ToyDefinition } from '../../types';
 
 interface ToySelectorProps {
-  onDragStart: (toy: { id: string; emoji: string; name: string }) => void;
+  onDragStart: (toy: ToyDefinition) => void;
 }
 
 const ToySelector: React.FC<ToySelectorProps> = ({ onDragStart }) => {
-  const [activeCategory, setActiveCategory] = React.useState(0);
+  const [activeCategory, setActiveCategory] = React.useState(TOY_DATA[0].category);
+  const [searchQuery, setSearchQuery] = React.useState('');
+
+  const categories = Array.from(new Set(TOY_DATA.map(t => t.category)));
+
+  const filteredToys = TOY_DATA.filter(toy =>
+    (toy.category === activeCategory || searchQuery) &&
+    toy.name.includes(searchQuery)
+  );
 
   return (
     <div className="flex flex-col h-full bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
-      {/* Category Tabs */}
-      <div className="flex overflow-x-auto border-b border-gray-200">
-        {TOY_CATEGORIES.map((cat, idx) => (
-          <button
-            key={cat.name}
-            className={`px-4 py-2 whitespace-nowrap text-sm font-medium ${
-              activeCategory === idx
-                ? 'bg-primary/10 text-primary border-b-2 border-primary'
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-            }`}
-            onClick={() => setActiveCategory(idx)}
-          >
-            {cat.name}
-          </button>
-        ))}
+
+      {/* Search Bar */}
+      <div className="p-2 border-b border-gray-100">
+        <input
+            type="text"
+            placeholder="搜索玩具..."
+            className="w-full px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:border-primary"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+        />
       </div>
 
-      {/* Toys Grid */}
-      <div className="p-4 grid grid-cols-4 gap-4 overflow-y-auto max-h-[200px] md:max-h-none">
-        {TOY_CATEGORIES[activeCategory].toys.map((toy) => (
-          <div
-            key={toy.id}
-            className="flex flex-col items-center justify-center p-2 rounded hover:bg-gray-100 cursor-grab active:cursor-grabbing transition-colors"
-            draggable
-            onDragStart={(e) => {
-              e.dataTransfer.setData('toy', JSON.stringify(toy));
-              onDragStart(toy);
-            }}
-            title={toy.name}
-          >
-            <span className="text-3xl mb-1">{toy.emoji}</span>
-            <span className="text-xs text-gray-500">{toy.name}</span>
+      {/* Category Tabs (Hidden if searching) */}
+      {!searchQuery && (
+          <div className="flex overflow-x-auto border-b border-gray-200 scrollbar-hide">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                className={`px-4 py-2 whitespace-nowrap text-sm font-medium flex-shrink-0 transition-colors ${
+                  activeCategory === cat
+                    ? 'bg-primary/10 text-primary border-b-2 border-primary'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                }`}
+                onClick={() => setActiveCategory(cat)}
+              >
+                {cat}
+              </button>
+            ))}
           </div>
-        ))}
+      )}
+
+      {/* Toys Grid */}
+      <div className="p-4 grid grid-cols-4 md:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto flex-1 min-h-0 content-start">
+        {filteredToys.length === 0 ? (
+            <div className="col-span-full text-center text-gray-400 py-4 text-sm">
+                没有找到 "{searchQuery}"
+            </div>
+        ) : (
+            filteredToys.map((toy) => (
+            <div
+                key={toy.id}
+                className="flex flex-col items-center justify-center p-2 rounded hover:bg-gray-100 cursor-grab active:cursor-grabbing transition-colors group aspect-square border border-transparent hover:border-gray-200"
+                draggable
+                onDragStart={(e) => {
+                    e.dataTransfer.setData('toy', JSON.stringify(toy));
+                    onDragStart(toy);
+                }}
+                title={toy.name}
+            >
+                <div className="transform group-hover:scale-110 transition-transform duration-200">
+                    <ToyIcon toy={toy} size={32} />
+                </div>
+                <span className="text-xs text-gray-500 mt-2 truncate w-full text-center">{toy.name}</span>
+            </div>
+            ))
+        )}
       </div>
     </div>
   );
