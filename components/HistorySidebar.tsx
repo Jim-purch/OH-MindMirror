@@ -56,7 +56,7 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
-            新的探索
+            回到首页
           </button>
         </div>
 
@@ -80,12 +80,17 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({
                     : 'bg-white border-transparent hover:bg-gray-50 hover:border-gray-200'}
                 `}
               >
-                <div className="font-medium text-gray-800 text-sm truncate">
+                <div className="font-medium text-gray-800 text-sm truncate flex items-center gap-1">
+                  {session.type === 'sandplay' ? (
+                      <span className="text-emerald-600" title="沙盘">🏝️</span>
+                  ) : (
+                      <span className="text-primary" title="OH卡">🎴</span>
+                  )}
                   {session.title || '未命名对话'}
                 </div>
                 <div className="text-xs text-gray-400 mt-1 flex justify-between">
                    <span>{new Date(session.createdAt).toLocaleDateString()}</span>
-                   <span>{session.cards.word.text}</span>
+                   {session.cards && <span>{session.cards.word.text}</span>}
                 </div>
 
                 <button
