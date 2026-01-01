@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Chat } from "@google/genai";
-import { Session, ViewState, CardCombination, Message, MessageRole, ApiSettings, DEFAULT_API_SETTINGS } from './types';
+import { Session, ViewState, CardCombination, Message, MessageRole, ApiSettings, DEFAULT_API_SETTINGS, PlacedToy } from './types';
 import HistorySidebar from './components/HistorySidebar';
 import CardDrawer from './components/CardDrawer';
 import ChatArea from './components/ChatArea';
 import SettingsModal from './components/SettingsModal';
+import SandplayView from './components/sandplay/SandplayView';
 import { getGeminiChat, sendMessage, createInitialContext } from './services/geminiService';
 
 const App: React.FC = () => {
@@ -67,6 +68,14 @@ const App: React.FC = () => {
     if (window.innerWidth < 768) setIsSidebarOpen(false);
   };
 
+  const handleNewSandplaySession = () => {
+    setViewState('sandplay');
+    setCurrentSessionId(null);
+    chatInstanceRef.current = null;
+    if (window.innerWidth < 768) setIsSidebarOpen(false);
+  };
+
+
   const handleDeleteSession = (sessionId: string) => {
     setSessions(prev => prev.filter(s => s.id !== sessionId));
     if (currentSessionId === sessionId) {
@@ -93,6 +102,7 @@ const App: React.FC = () => {
 
     const newSession: Session = {
       id: newSessionId,
+      type: 'oh-card',
       createdAt: Date.now(),
       lastUpdated: Date.now(),
       cards: combination,
@@ -110,6 +120,70 @@ const App: React.FC = () => {
 
       // Send hidden context to AI to Prime it (not shown in UI)
       const hiddenContext = createInitialContext(combination);
+      try {
+        await chatInstanceRef.current.sendMessage({ message: hiddenContext });
+      } catch (e) {
+        console.error("Failed to prime AI", e);
+      }
+    }
+  };
+
+  const handleSandplayFinish = async (placedToys: PlacedToy[], description: string) => {
+    const newSessionId = uuidv4();
+
+    // Construct initial message prompt
+    let initialText = `你好，我看到了你完成的沙盘。🌿\n\n`;
+    if (description) {
+        initialText += `你给它的描述是：“${description}”\n\n`;
+    }
+    initialText += `在这个安全的空间里，请看着你的作品。不需要评价好坏，不需要寻找意义。\n\n当你准备好时，告诉我：**在摆放这些物件的过程中，你有什么特别的感受吗？或者哪个物件最吸引你的注意？**`;
+
+    const initialMessage: Message = {
+      id: uuidv4(),
+      role: MessageRole.MODEL,
+      text: initialText,
+      timestamp: Date.now()
+    };
+
+    const newSession: Session = {
+        id: newSessionId,
+        type: 'sandplay',
+        createdAt: Date.now(),
+        lastUpdated: Date.now(),
+        sandplayData: {
+            placedToys,
+            description
+        },
+        messages: [initialMessage],
+        title: description ? description.slice(0, 10) : `沙盘 - ${new Date().toLocaleTimeString().slice(0, 5)}`
+    };
+
+    setSessions(prev => [...prev, newSession]);
+    setCurrentSessionId(newSessionId);
+    setViewState('chat');
+
+    // Initialize AI
+     if (apiSettings.provider === 'google') {
+      chatInstanceRef.current = getGeminiChat([], apiSettings);
+
+      // Create hidden context for Sandplay
+      const toysDescription = placedToys.map(t => `- ${t.name} (${t.emoji}) at position (${Math.round(t.x)}%, ${Math.round(t.y)}%)`).join('\n');
+      const hiddenContext = `
+[系统事件] 用户完成了一个沙盘作品。
+
+用户描述：${description || '无'}
+
+摆放的物件：
+${toysDescription}
+
+## 引导建议
+1. 引导用户关注整体感受
+2. 询问特定物件的象征意义
+3. 关注物件之间的空间关系
+
+请以温和、开放的态度开始引导。
+      `;
+
       try {
         await chatInstanceRef.current.sendMessage({ message: hiddenContext });
       } catch (e) {
@@ -226,15 +300,27 @@ const App: React.FC = () => {
               </div>
               <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">MindMirror</h1>
               <p className="text-gray-500 max-w-md mb-8 leading-relaxed">
-                通过OH卡与潜意识对话。这不是占卜，这是一面映照内心的镜子。
+                通过OH卡与潜意识对话，或者在沙盘中构建你的内心世界。
                 在这里，你可以安全地探索情绪、解开困惑。
               </p>
-              <button
-                onClick={handleNewSession}
-                className="bg-primary hover:bg-indigo-600 text-white px-8 py-3 rounded-full text-lg shadow-lg transition-transform hover:scale-105 active:scale-95"
-              >
-                开始探索
-              </button>
+              <div className="flex flex-col md:flex-row gap-4">
+                  <button
+                    onClick={handleNewSession}
+                    className="bg-primary hover:bg-indigo-600 text-white px-8 py-3 rounded-full text-lg shadow-lg transition-transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+                    </svg>
+                    OH卡探索
+                  </button>
+                  <button
+                    onClick={handleNewSandplaySession}
+                    className="bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-3 rounded-full text-lg shadow-lg transition-transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+                  >
+                     <span className="text-xl">🏝️</span>
+                    沙盘模拟
+                  </button>
+              </div>
             </div>
           )}
 
@@ -242,10 +328,15 @@ const App: React.FC = () => {
             <CardDrawer onCardsSelected={handleCardSelection} />
           )}
 
+          {viewState === 'sandplay' && (
+            <SandplayView onFinish={handleSandplayFinish} onCancel={() => setViewState('welcome')} />
+          )}
+
           {viewState === 'chat' && currentSession && (
             <ChatArea
               messages={currentSession.messages}
               cards={currentSession.cards}
+              sandplayData={currentSession.sandplayData}
               onSendMessage={handleSendMessage}
               isLoading={isLoading}
             />

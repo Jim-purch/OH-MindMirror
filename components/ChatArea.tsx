@@ -1,16 +1,17 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Message, MessageRole, CardCombination } from '../types';
+import { Message, MessageRole, CardCombination, PlacedToy } from '../types';
 
 interface ChatAreaProps {
   messages: Message[];
-  cards: CardCombination;
+  cards?: CardCombination;
+  sandplayData?: { placedToys: PlacedToy[] };
   onSendMessage: (text: string) => void;
   isLoading: boolean;
 }
 
-const ChatArea: React.FC<ChatAreaProps> = ({ messages, cards, onSendMessage, isLoading }) => {
+const ChatArea: React.FC<ChatAreaProps> = ({ messages, cards, sandplayData, onSendMessage, isLoading }) => {
   const [inputText, setInputText] = useState('');
-  const [showCardPreview, setShowCardPreview] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [wordImageError, setWordImageError] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -42,37 +43,57 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, cards, onSendMessage, isL
     document.body.removeChild(link);
   };
 
+  const hasCards = !!cards;
+  const hasSandplay = !!sandplayData;
+
   return (
     <div className="flex flex-col h-full bg-background relative">
 
-      {/* Sticky Header with Card Mini-view */}
+      {/* Sticky Header with Mini-view */}
       <div className="flex-none bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-sm z-10">
         <div
           className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 rounded-lg p-1 -m-1 transition-colors"
-          onClick={() => setShowCardPreview(!showCardPreview)}
+          onClick={() => setShowPreview(!showPreview)}
         >
-          {/* 图像卡缩略图 */}
-          <div className="w-10 h-10 rounded overflow-hidden border border-gray-200 shadow-sm">
-            <img src={cards.image.url} className="w-full h-full object-cover" alt="图像卡" />
-          </div>
-          {/* 文字卡缩略图 */}
-          <div className="w-10 h-10 rounded overflow-hidden border border-amber-200 shadow-sm bg-amber-50 flex items-center justify-center">
-            {!wordImageError ? (
-              <img
-                src={cards.word.url}
-                className="w-full h-full object-cover"
-                alt={cards.word.text}
-                onError={() => setWordImageError(true)}
-              />
-            ) : (
-              <span className="text-xs font-bold text-amber-700">{cards.word.text}</span>
-            )}
-          </div>
-          <div>
-            <h3 className="font-bold text-gray-700 text-sm">探索对话</h3>
-            <p className="text-xs text-gray-500">图像卡 #{cards.image.index + 1} + 「{cards.word.text}」</p>
-          </div>
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`w-4 h-4 text-gray-400 transition-transform ${showCardPreview ? 'rotate-180' : ''}`}>
+          {hasCards && cards && (
+            <>
+              {/* 图像卡缩略图 */}
+              <div className="w-10 h-10 rounded overflow-hidden border border-gray-200 shadow-sm">
+                <img src={cards.image.url} className="w-full h-full object-cover" alt="图像卡" />
+              </div>
+              {/* 文字卡缩略图 */}
+              <div className="w-10 h-10 rounded overflow-hidden border border-amber-200 shadow-sm bg-amber-50 flex items-center justify-center">
+                {!wordImageError ? (
+                  <img
+                    src={cards.word.url}
+                    className="w-full h-full object-cover"
+                    alt={cards.word.text}
+                    onError={() => setWordImageError(true)}
+                  />
+                ) : (
+                  <span className="text-xs font-bold text-amber-700">{cards.word.text}</span>
+                )}
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-700 text-sm">OH卡探索</h3>
+                <p className="text-xs text-gray-500">#{cards.image.index + 1} + 「{cards.word.text}」</p>
+              </div>
+            </>
+          )}
+
+          {hasSandplay && (
+            <>
+              <div className="w-10 h-10 rounded bg-[#e6cfa1] flex items-center justify-center border border-wood-800 shadow-sm">
+                 <span className="text-xl">🏝️</span>
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-700 text-sm">沙盘探索</h3>
+                <p className="text-xs text-gray-500">共 {sandplayData.placedToys.length} 个物件</p>
+              </div>
+            </>
+          )}
+
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`w-4 h-4 text-gray-400 transition-transform ${showPreview ? 'rotate-180' : ''}`}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
           </svg>
         </div>
@@ -87,35 +108,55 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, cards, onSendMessage, isL
         </button>
       </div>
 
-      {/* 卡牌预览面板 */}
-      {showCardPreview && (
+      {/* 预览面板 */}
+      {showPreview && (
         <div className="flex-none bg-gradient-to-b from-gray-50 to-white border-b border-gray-100 p-4 animate-fade-in">
-          <div className="flex justify-center gap-6">
-            {/* 图像卡 */}
-            <div className="text-center">
-              <div className="w-32 h-40 md:w-40 md:h-52 rounded-xl overflow-hidden border-2 border-indigo-200 shadow-lg">
-                <img src={cards.image.url} className="w-full h-full object-cover" alt="图像卡" />
+          {hasCards && cards && (
+            <div className="flex justify-center gap-6">
+              {/* 图像卡 */}
+              <div className="text-center">
+                <div className="w-32 h-40 md:w-40 md:h-52 rounded-xl overflow-hidden border-2 border-indigo-200 shadow-lg">
+                  <img src={cards.image.url} className="w-full h-full object-cover" alt="图像卡" />
+                </div>
+                <p className="text-xs text-gray-500 mt-2">图像卡 #{cards.image.index + 1}</p>
               </div>
-              <p className="text-xs text-gray-500 mt-2">图像卡 #{cards.image.index + 1}</p>
-            </div>
-            {/* 文字卡 */}
-            <div className="text-center">
-              <div className="w-32 h-40 md:w-40 md:h-52 rounded-xl overflow-hidden border-2 border-amber-200 shadow-lg bg-amber-50 flex items-center justify-center">
-                {!wordImageError ? (
-                  <img
-                    src={cards.word.url}
-                    className="w-full h-full object-cover"
-                    alt={cards.word.text}
-                    onError={() => setWordImageError(true)}
-                  />
-                ) : (
-                  <span className="text-2xl md:text-3xl font-bold text-amber-700">{cards.word.text}</span>
-                )}
+              {/* 文字卡 */}
+              <div className="text-center">
+                <div className="w-32 h-40 md:w-40 md:h-52 rounded-xl overflow-hidden border-2 border-amber-200 shadow-lg bg-amber-50 flex items-center justify-center">
+                  {!wordImageError ? (
+                    <img
+                      src={cards.word.url}
+                      className="w-full h-full object-cover"
+                      alt={cards.word.text}
+                      onError={() => setWordImageError(true)}
+                    />
+                  ) : (
+                    <span className="text-2xl md:text-3xl font-bold text-amber-700">{cards.word.text}</span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-2">文字卡「{cards.word.text}」</p>
               </div>
-              <p className="text-xs text-gray-500 mt-2">文字卡「{cards.word.text}」</p>
             </div>
-          </div>
-          <p className="text-center text-xs text-gray-400 mt-3">点击上方卡片区域可以收起预览</p>
+          )}
+
+          {hasSandplay && sandplayData && (
+             <div className="flex flex-col items-center">
+                <div className="relative w-full max-w-lg aspect-video bg-[#e6cfa1] rounded-lg shadow-inner border-4 border-wood-800 overflow-hidden mb-2">
+                    {/* Simplified read-only view of sandplay */}
+                    {sandplayData.placedToys.map(toy => (
+                         <div
+                            key={toy.id}
+                            className="absolute transform -translate-x-1/2 -translate-y-1/2 text-2xl select-none"
+                            style={{ left: `${toy.x}%`, top: `${toy.y}%` }}
+                          >
+                            {toy.emoji}
+                          </div>
+                    ))}
+                </div>
+                <p className="text-xs text-gray-500">沙盘快照</p>
+             </div>
+          )}
+          <p className="text-center text-xs text-gray-400 mt-3">点击上方标题栏可以收起预览</p>
         </div>
       )}
 

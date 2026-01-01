@@ -28,16 +28,34 @@ export interface Message {
   timestamp: number;
 }
 
+export interface PlacedToy {
+  id: string; // Unique ID for this placed instance
+  toyId: string; // ID of the toy type
+  emoji: string; // The emoji representing the toy
+  name: string;
+  x: number; // Percentage 0-100
+  y: number; // Percentage 0-100
+}
+
+export interface SandplayData {
+  placedToys: PlacedToy[];
+  description?: string;
+}
+
+export type SessionType = 'oh-card' | 'sandplay';
+
 export interface Session {
   id: string;
+  type?: SessionType; // Optional for backward compatibility, defaults to 'oh-card'
   createdAt: number;
   lastUpdated: number;
-  cards: CardCombination;
+  cards?: CardCombination; // Optional, present if type is 'oh-card'
+  sandplayData?: SandplayData; // Optional, present if type is 'sandplay'
   messages: Message[];
   title?: string;
 }
 
-export type ViewState = 'welcome' | 'draw' | 'chat';
+export type ViewState = 'welcome' | 'draw' | 'chat' | 'sandplay';
 
 // API 配置设置
 export interface ApiSettings {
